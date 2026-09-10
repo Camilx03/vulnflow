@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, require_roles
 from app.db.database import get_db
 from app.models.asset import Asset
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.asset import AssetCreate, AssetResponse, AssetUpdate
 import uuid
 
@@ -23,7 +23,12 @@ router = APIRouter(
 def create_asset(
     asset_data: AssetCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.ANALYST,
+        )
+    ),
 ):
     hostname = asset_data.hostname.strip().lower()
 
@@ -107,7 +112,12 @@ def update_asset(
     asset_id: uuid.UUID,
     asset_data: AssetUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.ANALYST,
+        )
+    ),
 ):
     asset = db.get(Asset, asset_id)
 
@@ -174,7 +184,12 @@ def update_asset(
 def delete_asset(
     asset_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.ANALYST,
+        )
+    ),
 ) -> Response:
     asset = db.get(Asset, asset_id)
 
