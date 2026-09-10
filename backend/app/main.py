@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.v1.auth import router as auth_router
+from app.api.v1.assets import router as assets_router
 from app.db.database import get_db
 
 
@@ -14,6 +15,12 @@ app = FastAPI(
 
 app.include_router(
     auth_router,
+    prefix="/api/v1",
+)
+
+
+app.include_router(
+    assets_router,
     prefix="/api/v1",
 )
 
