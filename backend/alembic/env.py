@@ -22,6 +22,9 @@ from app.core.config import settings
 from app.db.base import Base
 from app.models.user import User
 from app.models.asset import Asset
+from app.models.vulnerability import Vulnerability
+from app.models.comment import Comment
+from app.models.audit_log import AuditLog
 
 config.set_main_option("sqlalchemy.url", settings.database_url)
 

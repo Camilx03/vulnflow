@@ -7,6 +7,7 @@ from app.db.database import get_db
 from app.models.asset import Asset
 from app.models.user import User, UserRole
 from app.schemas.asset import AssetCreate, AssetResponse, AssetUpdate
+from app.services.audit import create_audit_log
 import uuid
 
 router = APIRouter(
@@ -62,11 +63,30 @@ def create_asset(
         ),
     )
 
+
     db.add(asset)
+    db.flush()
+
+    create_audit_log(
+        db=db,
+        user_id=current_user.id,
+        action="CREATE",
+        entity_type="asset",
+        entity_id=asset.id,
+        changes={
+            "hostname": asset.hostname,
+            "ip_address": asset.ip_address,
+            "operating_system": asset.operating_system,
+            "environment": asset.environment,
+            "description": asset.description,
+        },
+    )
+
     db.commit()
     db.refresh(asset)
 
     return asset
+
 
 
 @router.get(
@@ -171,6 +191,45 @@ def update_asset(
             else None
         )
 
+
+    original_values = db.get(
+        Asset,
+        asset_id,
+    )
+
+    changes = {}
+
+    if asset in db.dirty:
+        from sqlalchemy import inspect
+
+        state = inspect(asset)
+
+        for field in (
+            "hostname",
+            "ip_address",
+            "operating_system",
+            "environment",
+            "description",
+        ):
+            history = state.attrs[field].history
+
+            if history.has_changes():
+                changes[field] = {
+                    "old": history.deleted[0] if history.deleted else None,
+                    "new": getattr(asset, field),
+                }
+
+    if changes:
+        create_audit_log(
+            db=db,
+            user_id=current_user.id,
+            action="UPDATE",
+            entity_type="asset",
+            entity_id=asset.id,
+            changes=changes,
+        )
+
+
     db.commit()
     db.refresh(asset)
 
@@ -198,6 +257,22 @@ def delete_asset(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Asset not found",
         )
+
+
+    create_audit_log(
+        db=db,
+        user_id=current_user.id,
+        action="DELETE",
+        entity_type="asset",
+        entity_id=asset.id,
+        changes={
+            "hostname": asset.hostname,
+            "ip_address": asset.ip_address,
+            "operating_system": asset.operating_system,
+            "environment": asset.environment,
+            "description": asset.description,
+        },
+    )
 
     db.delete(asset)
     db.commit()
