@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import get_current_user, require_roles
 from app.db.database import get_db
 from app.models.asset import Asset
 from app.models.user import User, UserRole
+from app.models.vulnerability import Vulnerability
 from app.schemas.asset import AssetCreate, AssetResponse, AssetUpdate
 from app.services.audit import create_audit_log
 import uuid
@@ -257,6 +259,17 @@ def delete_asset(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Asset not found",
         )
+    associated_vulnerability = db.scalar(
+        select(Vulnerability.id)
+        .where(Vulnerability.asset_id == asset_id)
+        .limit(1)
+    )
+
+    if associated_vulnerability is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot delete asset with associated vulnerabilities",
+        )
 
 
     create_audit_log(
@@ -274,7 +287,37 @@ def delete_asset(
         },
     )
 
-    db.delete(asset)
-    db.commit()
+
+    try:
+        db.delete(asset)
+        db.commit()
+
+    except IntegrityError as exc:
+        db.rollback()
+
+        original_error = exc.orig
+
+        sqlstate = (
+            getattr(original_error, "sqlstate", None)
+            or getattr(original_error, "pgcode", None)
+        )
+
+        diagnostic = getattr(original_error, "diag", None)
+        constraint_name = getattr(
+            diagnostic,
+            "constraint_name",
+            None,
+        )
+
+        if (
+            sqlstate == "23503"
+            and constraint_name == "vulnerabilities_asset_id_fkey"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Cannot delete asset with associated vulnerabilities",
+            ) from None
+
+        raise
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

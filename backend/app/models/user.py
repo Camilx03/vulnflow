@@ -44,7 +44,7 @@ class User(Base):
             name="user_role",
             values_callable=lambda enum: [item.value for item in enum],
         ),
-        default=UserRole.ANALYST,
+        default=UserRole.VIEWER,
         nullable=False,
     )
 

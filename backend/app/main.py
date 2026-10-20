@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,7 @@ from app.api.v1.comments import delete_router as comments_delete_router
 from app.api.v1.audit_logs import router as audit_logs_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.db.database import get_db
+from app.core.config import settings
 
 
 app = FastAPI(
@@ -18,6 +20,16 @@ app = FastAPI(
     description="API for the VulnFlow vulnerability management platform",
     version="0.1.0",
 )
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
 
 app.include_router(
     auth_router,

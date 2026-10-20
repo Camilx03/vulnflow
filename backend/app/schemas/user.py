@@ -6,10 +6,14 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from app.models.user import UserRole
 
 
+
 class UserCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     email: EmailStr
     password: str = Field(min_length=12, max_length=128)
     full_name: str = Field(min_length=2, max_length=120)
+
 
 
 class UserLogin(BaseModel):
