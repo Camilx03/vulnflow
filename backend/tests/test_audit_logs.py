@@ -262,3 +262,42 @@ def test_audit_logs_reject_invalid_page_size(
     )
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "role",
+    [
+        UserRole.VIEWER,
+        UserRole.ANALYST,
+    ],
+)
+def test_non_admin_cannot_access_audit_logs(
+    client,
+    db_session,
+    role,
+):
+    user = User(
+        email=f"audit-denied-{role.value}@vulnflow.dev",
+        password_hash=hash_password("AuditTestPassword2026!"),
+        full_name="Audit Permission Test",
+        role=role,
+        is_active=True,
+    )
+
+    db_session.add(user)
+    db_session.flush()
+
+    token = create_access_token(
+        user_id=str(user.id),
+        role=user.role.value,
+    )
+
+    response = client.get(
+        "/api/v1/audit-logs",
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Insufficient permissions"

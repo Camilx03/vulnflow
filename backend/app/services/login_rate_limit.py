@@ -124,11 +124,17 @@ def reset_account_login_attempts(
     db.commit()
 
 
+
 def cleanup_expired_login_attempts(
     db: Session,
 ) -> int:
+    retention_minutes = max(
+        settings.login_window_minutes,
+        settings.registration_window_minutes,
+    ) * 2
+
     cutoff = datetime.now(timezone.utc) - timedelta(
-        minutes=settings.login_window_minutes * 2
+        minutes=retention_minutes
     )
 
     result = db.execute(
@@ -140,6 +146,7 @@ def cleanup_expired_login_attempts(
     db.commit()
 
     return result.rowcount
+
 
 
 def consume_registration_attempt(

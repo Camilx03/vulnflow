@@ -202,3 +202,116 @@ def test_unauthenticated_cannot_list_comments(
     )
 
     assert response.status_code == 401
+
+
+def create_role_headers(db_session, role, email):
+    user = User(
+        email=email,
+        password_hash=hash_password("CommentPermissions2026!"),
+        full_name="Comment Permission Test",
+        role=role,
+        is_active=True,
+    )
+
+    db_session.add(user)
+    db_session.flush()
+
+    token = create_access_token(
+        user_id=str(user.id),
+        role=user.role.value,
+    )
+
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_analyst_cannot_delete_other_users_comment(
+    client,
+    db_session,
+    admin_headers,
+    created_vulnerability,
+    created_comment,
+):
+    analyst_headers = create_role_headers(
+        db_session,
+        UserRole.ANALYST,
+        "other-comment-analyst@vulnflow.dev",
+    )
+
+    response = client.delete(
+        f"/api/v1/comments/{created_comment['id']}",
+        headers=analyst_headers,
+    )
+
+    assert response.status_code == 403
+
+    list_response = client.get(
+        f"/api/v1/vulnerabilities/{created_vulnerability['id']}/comments",
+        headers=admin_headers,
+    )
+
+    assert list_response.status_code == 200
+    assert any(
+        item["id"] == created_comment["id"]
+        for item in list_response.json()
+    )
+
+
+def test_analyst_can_delete_own_comment(
+    client,
+    db_session,
+    created_vulnerability,
+):
+    analyst_headers = create_role_headers(
+        db_session,
+        UserRole.ANALYST,
+        "own-comment-analyst@vulnflow.dev",
+    )
+
+    vulnerability_id = created_vulnerability["id"]
+
+    create_response = client.post(
+        f"/api/v1/vulnerabilities/{vulnerability_id}/comments",
+        headers=analyst_headers,
+        json={"content": "Analyst's own comment"},
+    )
+
+    assert create_response.status_code == 201
+
+    comment_id = create_response.json()["id"]
+
+    delete_response = client.delete(
+        f"/api/v1/comments/{comment_id}",
+        headers=analyst_headers,
+    )
+
+    assert delete_response.status_code == 204
+
+    list_response = client.get(
+        f"/api/v1/vulnerabilities/{vulnerability_id}/comments",
+        headers=analyst_headers,
+    )
+
+    assert list_response.status_code == 200
+    assert all(
+        item["id"] != comment_id
+        for item in list_response.json()
+    )
+
+
+def test_viewer_cannot_delete_comment(
+    client,
+    db_session,
+    created_comment,
+):
+    viewer_headers = create_role_headers(
+        db_session,
+        UserRole.VIEWER,
+        "comment-viewer@vulnflow.dev",
+    )
+
+    response = client.delete(
+        f"/api/v1/comments/{created_comment['id']}",
+        headers=viewer_headers,
+    )
+
+    assert response.status_code == 403

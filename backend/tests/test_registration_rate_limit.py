@@ -6,6 +6,7 @@ from sqlalchemy import select, update
 from app.core.config import settings
 from app.models.login_rate_limit import LoginRateLimit
 from app.models.user import User
+from app.services.login_rate_limit import cleanup_expired_login_attempts
 
 
 def register_user(client, email, headers=None):
@@ -126,3 +127,49 @@ def test_registration_ignores_forged_forwarded_headers(
     )
 
     assert second_response.status_code == 429
+
+
+def test_cleanup_preserves_active_registration_limit(
+    client,
+    db_session,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        settings,
+        "registration_ip_max_attempts",
+        1,
+    )
+
+    first_response = register_user(
+        client,
+        "registration-cleanup-first@vulnflow.dev",
+    )
+
+    assert first_response.status_code == 201
+
+    blocked_response = register_user(
+        client,
+        "registration-cleanup-second@vulnflow.dev",
+    )
+
+    assert blocked_response.status_code == 429
+
+    mid_window = datetime.now(timezone.utc) - timedelta(
+        minutes=45
+    )
+
+    db_session.execute(
+        update(LoginRateLimit).values(
+            window_started_at=mid_window
+        )
+    )
+    db_session.commit()
+
+    cleanup_expired_login_attempts(db_session)
+
+    still_blocked = register_user(
+        client,
+        "registration-cleanup-third@vulnflow.dev",
+    )
+
+    assert still_blocked.status_code == 429

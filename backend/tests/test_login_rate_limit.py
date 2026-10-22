@@ -170,7 +170,10 @@ def test_cleanup_expired_login_attempts(client, db_session):
     assert before >= 2
 
     expired_time = datetime.now(timezone.utc) - timedelta(
-        minutes=settings.login_window_minutes * 2 + 1
+        minutes=max(
+            settings.login_window_minutes,
+            settings.registration_window_minutes,
+        ) * 2 + 1
     )
 
     db_session.execute(
