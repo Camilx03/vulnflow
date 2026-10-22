@@ -199,3 +199,130 @@ def test_unauthenticated_cannot_list_assets(client):
     response = client.get("/api/v1/assets")
 
     assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    "hostname",
+    [
+        "   ",
+        "\t\t",
+        " \n ",
+    ],
+)
+def test_create_asset_rejects_blank_hostname(
+    client,
+    admin_headers,
+    hostname,
+):
+    response = client.post(
+        "/api/v1/assets",
+        headers=admin_headers,
+        json={
+            **ASSET_DATA,
+            "hostname": hostname,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"hostname": None},
+        {"environment": None},
+    ],
+)
+def test_update_asset_rejects_null_required_fields(
+    client,
+    admin_headers,
+    created_asset,
+    payload,
+):
+    asset_id = created_asset["id"]
+
+    response = client.patch(
+        f"/api/v1/assets/{asset_id}",
+        headers=admin_headers,
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    check_response = client.get(
+        f"/api/v1/assets/{asset_id}",
+        headers=admin_headers,
+    )
+
+    assert check_response.status_code == 200
+    assert check_response.json()["hostname"] == created_asset["hostname"]
+    assert check_response.json()["environment"] == created_asset["environment"]
+
+
+def test_update_asset_rejects_blank_hostname(
+    client,
+    admin_headers,
+    created_asset,
+):
+    response = client.patch(
+        f"/api/v1/assets/{created_asset['id']}",
+        headers=admin_headers,
+        json={
+            "hostname": "   ",
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_asset_normalizes_hostname(
+    client,
+    admin_headers,
+):
+    response = client.post(
+        "/api/v1/assets",
+        headers=admin_headers,
+        json={
+            **ASSET_DATA,
+            "hostname": "  TEST-ASSET-NORMALIZED  ",
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["hostname"] == "test-asset-normalized"
+
+
+def test_update_asset_normalizes_hostname(
+    client,
+    admin_headers,
+    created_asset,
+):
+    response = client.patch(
+        f"/api/v1/assets/{created_asset['id']}",
+        headers=admin_headers,
+        json={
+            "hostname": "  UPDATED-ASSET-NAME  ",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["hostname"] == "updated-asset-name"
+
+
+def test_partial_asset_update_preserves_required_fields(
+    client,
+    admin_headers,
+    created_asset,
+):
+    response = client.patch(
+        f"/api/v1/assets/{created_asset['id']}",
+        headers=admin_headers,
+        json={
+            "description": "Updated description",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["hostname"] == created_asset["hostname"]
+    assert response.json()["environment"] == created_asset["environment"]
+    assert response.json()["description"] == "Updated description"

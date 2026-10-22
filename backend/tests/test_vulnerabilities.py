@@ -275,3 +275,106 @@ def test_viewer_cannot_create_vulnerability(client, created_asset):
     )
 
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "   ",
+        "\t\t",
+        " \n ",
+    ],
+)
+def test_create_vulnerability_rejects_blank_title(
+    client,
+    admin_headers,
+    created_asset,
+    title,
+):
+    response = client.post(
+        "/api/v1/vulnerabilities",
+        headers=admin_headers,
+        json={
+            **VULNERABILITY_DATA,
+            "asset_id": created_asset["id"],
+            "title": title,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "   ",
+        "\t\t",
+        " \n ",
+    ],
+)
+def test_update_vulnerability_rejects_blank_title(
+    client,
+    admin_headers,
+    created_vulnerability,
+    title,
+):
+    vulnerability_id = created_vulnerability["id"]
+
+    response = client.patch(
+        f"/api/v1/vulnerabilities/{vulnerability_id}",
+        headers=admin_headers,
+        json={
+            "title": title,
+        },
+    )
+
+    assert response.status_code == 422
+
+    check_response = client.get(
+        f"/api/v1/vulnerabilities/{vulnerability_id}",
+        headers=admin_headers,
+    )
+
+    assert check_response.status_code == 200
+    assert (
+        check_response.json()["title"]
+        == created_vulnerability["title"]
+    )
+
+
+def test_create_vulnerability_normalizes_title(
+    client,
+    admin_headers,
+    created_asset,
+):
+    response = client.post(
+        "/api/v1/vulnerabilities",
+        headers=admin_headers,
+        json={
+            **VULNERABILITY_DATA,
+            "asset_id": created_asset["id"],
+            "title": "  Critical Security Finding  ",
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["title"] == "Critical Security Finding"
+
+
+def test_update_vulnerability_normalizes_title(
+    client,
+    admin_headers,
+    created_vulnerability,
+):
+    vulnerability_id = created_vulnerability["id"]
+
+    response = client.patch(
+        f"/api/v1/vulnerabilities/{vulnerability_id}",
+        headers=admin_headers,
+        json={
+            "title": "  Updated Security Finding  ",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["title"] == "Updated Security Finding"
