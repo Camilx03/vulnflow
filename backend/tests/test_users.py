@@ -88,3 +88,88 @@ def test_list_users_requires_authentication(client):
     response = client.get("/api/v1/users")
 
     assert response.status_code == 401
+
+
+def test_token_role_cannot_override_database_role(client, users):
+    viewer = users[UserRole.VIEWER]
+
+    token = create_access_token(
+        user_id=str(viewer.id),
+        role=UserRole.ADMIN.value,
+    )
+
+    response = client.get(
+        "/api/v1/users",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_inactive_admin_cannot_use_existing_token(
+    client,
+    users,
+    db_session,
+):
+    admin = users[UserRole.ADMIN]
+
+    token = create_access_token(
+        user_id=str(admin.id),
+        role=admin.role.value,
+    )
+
+    admin.is_active = False
+    db_session.flush()
+
+    response = client.get(
+        "/api/v1/users",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_downgraded_admin_loses_permissions(
+    client,
+    users,
+    db_session,
+):
+    admin = users[UserRole.ADMIN]
+
+    token = create_access_token(
+        user_id=str(admin.id),
+        role=admin.role.value,
+    )
+
+    admin.role = UserRole.VIEWER
+    db_session.flush()
+
+    response = client.get(
+        "/api/v1/users",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_deleted_user_cannot_use_existing_token(
+    client,
+    users,
+    db_session,
+):
+    admin = users[UserRole.ADMIN]
+
+    token = create_access_token(
+        user_id=str(admin.id),
+        role=admin.role.value,
+    )
+
+    db_session.delete(admin)
+    db_session.flush()
+
+    response = client.get(
+        "/api/v1/users",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 401

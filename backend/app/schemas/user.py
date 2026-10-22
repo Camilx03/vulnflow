@@ -7,6 +7,7 @@ from pydantic import (
     EmailStr,
     Field,
     field_validator,
+    model_validator,
 )
 
 from app.models.user import UserRole
@@ -49,3 +50,16 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+class UserAdminUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    role: UserRole | None = None
+    is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def validate_update(self):
+        if self.role is None and self.is_active is None:
+            raise ValueError("At least one field must be provided")
+
+        return self
