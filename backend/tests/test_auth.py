@@ -1,6 +1,6 @@
 
 from sqlalchemy import select
-
+import pytest
 from app.models.user import User
 
 
@@ -166,3 +166,44 @@ def test_viewer_cannot_create_asset(client):
         response.json()["detail"]
         == "Insufficient permissions"
     )
+
+
+@pytest.mark.parametrize(
+    "full_name",
+    [
+        "  ",
+        " A ",
+        "\t\t",
+    ],
+)
+def test_register_rejects_invalid_full_name(
+    client,
+    db_session,
+    full_name,
+):
+    email = "invalid-full-name@vulnflow.dev"
+
+    response = register_user(
+        client,
+        email,
+        full_name=full_name,
+    )
+
+    assert response.status_code == 422
+
+    user = db_session.scalar(
+        select(User).where(User.email == email)
+    )
+
+    assert user is None
+
+
+def test_register_normalizes_full_name(client):
+    response = register_user(
+        client,
+        "normalized-name@vulnflow.dev",
+        full_name="  Valid Name  ",
+    )
+
+    assert response.status_code == 201
+    assert response.json()["full_name"] == "Valid Name"

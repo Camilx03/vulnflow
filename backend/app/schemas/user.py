@@ -1,7 +1,13 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+)
 
 from app.models.user import UserRole
 
@@ -14,6 +20,13 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=12, max_length=128)
     full_name: str = Field(min_length=2, max_length=120)
 
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def normalize_full_name(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+
+        return value
 
 
 class UserLogin(BaseModel):

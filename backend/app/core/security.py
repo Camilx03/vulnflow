@@ -10,6 +10,11 @@ from app.core.config import settings
 password_hasher = PasswordHasher()
 
 
+DUMMY_PASSWORD_HASH = password_hasher.hash(
+    "vulnflow-login-verification-placeholder"
+)
+
+
 def hash_password(password: str) -> str:
     return password_hasher.hash(password)
 

@@ -16,6 +16,15 @@ class Settings(BaseSettings):
     )
 
 
+    login_account_max_attempts: int = Field(default=5, ge=1)
+    login_ip_max_attempts: int = Field(default=100, ge=1)
+    login_window_minutes: int = Field(default=15, ge=1)
+
+
+    registration_ip_max_attempts: int = Field(default=5, ge=1)
+    registration_window_minutes: int = Field(default=60, ge=1)
+
+
     cors_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:5173",

@@ -1,3 +1,7 @@
+import asyncio
+import logging
+from contextlib import asynccontextmanager, suppress
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -11,14 +15,60 @@ from app.api.v1.comments import router as comments_router
 from app.api.v1.comments import delete_router as comments_delete_router
 from app.api.v1.audit_logs import router as audit_logs_router
 from app.api.v1.dashboard import router as dashboard_router
-from app.db.database import get_db
+from app.db.database import SessionLocal, get_db
 from app.core.config import settings
+from app.services.login_rate_limit import cleanup_expired_login_attempts
 
+
+logger = logging.getLogger(__name__)
+
+
+LOGIN_CLEANUP_INTERVAL_SECONDS = 1800
+
+
+def run_login_cleanup() -> int:
+    with SessionLocal() as db:
+        return cleanup_expired_login_attempts(db)
+
+
+async def periodic_login_cleanup():
+    while True:
+        await asyncio.sleep(LOGIN_CLEANUP_INTERVAL_SECONDS)
+
+        try:
+            deleted = await asyncio.to_thread(
+                run_login_cleanup
+            )
+
+            logger.info(
+                "Login rate limit cleanup completed: %s records deleted",
+                deleted,
+            )
+        except Exception:
+            logger.exception(
+                "Login rate limit cleanup failed"
+            )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    cleanup_task = asyncio.create_task(
+        periodic_login_cleanup()
+    )
+
+    try:
+        yield
+    finally:
+        cleanup_task.cancel()
+
+        with suppress(asyncio.CancelledError):
+            await cleanup_task
 
 app = FastAPI(
     title="VulnFlow API",
     description="API for the VulnFlow vulnerability management platform",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 
