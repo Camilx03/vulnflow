@@ -1,0 +1,66 @@
+
+name: Backend Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: FastAPI and PostgreSQL Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: vulnflow_test
+          POSTGRES_PASSWORD: ci_vulnflow_test_only_2026
+          POSTGRES_DB: vulnflow_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U vulnflow_test -d vulnflow_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+psycopg://vulnflow_test:ci_vulnflow_test_only_2026@127.0.0.1:5433/vulnflow_test
+      VULNFLOW_TEST_DB_PASSWORD: ci_vulnflow_test_only_2026
+      JWT_SECRET_KEY: vulnflow_ci_only_jwt_signing_key_2026_not_for_production
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run backend tests
+        run: |
+          python -m pytest -v
