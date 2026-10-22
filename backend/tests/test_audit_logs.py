@@ -301,3 +301,46 @@ def test_non_admin_cannot_access_audit_logs(
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Insufficient permissions"
+
+def test_filter_user_administration_audit_logs(
+    client,
+    db_session,
+    admin_headers,
+):
+    user = User(
+        email="audit-target-user@vulnflow.dev",
+        password_hash=hash_password("AuditTestPassword2026!"),
+        full_name="Audited User",
+        role=UserRole.VIEWER,
+        is_active=True,
+    )
+
+    db_session.add(user)
+    db_session.flush()
+
+    response = client.patch(
+        f"/api/v1/users/{user.id}",
+        headers=admin_headers,
+        json={"role": "analyst"},
+    )
+
+    assert response.status_code == 200, response.text
+
+    data = get_audit_logs(
+        client,
+        admin_headers,
+        entity_type="user",
+        action="UPDATE",
+    )
+
+    matching_logs = [
+        log
+        for log in data["items"]
+        if log["entity_id"] == str(user.id)
+    ]
+
+    assert len(matching_logs) == 1
+    assert matching_logs[0]["changes"]["role"] == {
+        "old": "viewer",
+        "new": "analyst",
+    }

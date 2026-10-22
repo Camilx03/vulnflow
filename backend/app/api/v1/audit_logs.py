@@ -27,7 +27,7 @@ def list_audit_logs(
     action: str | None = Query(default=None, pattern="^(CREATE|UPDATE|DELETE)$"),
     entity_type: str | None = Query(
         default=None,
-        pattern="^(asset|vulnerability|comment)$",
+        pattern="^(asset|vulnerability|comment|user)$",
     ),
     entity_id: uuid.UUID | None = None,
     user_id: uuid.UUID | None = None,
