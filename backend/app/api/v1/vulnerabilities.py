@@ -58,6 +58,8 @@ def create_vulnerability(
         assigned_user = db.get(
             User,
             vulnerability_data.assigned_user_id,
+            with_for_update=True,
+            populate_existing=True,
         )
 
         if assigned_user is None:
@@ -212,7 +214,12 @@ def update_vulnerability(
         assigned_user_id = update_data["assigned_user_id"]
 
         if assigned_user_id is not None:
-            assigned_user = db.get(User, assigned_user_id)
+            assigned_user = db.get(
+                User,
+                assigned_user_id,
+                with_for_update=True,
+                populate_existing=True,
+            )
 
             if assigned_user is None:
                 raise HTTPException(
