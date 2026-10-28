@@ -64,3 +64,77 @@ a {
 .app-main h1 {
   margin-top: 0;
 }
+
+.auth-panel {
+  max-width: 440px;
+  margin: 40px auto;
+  padding: 32px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+
+.auth-panel h1 {
+  margin-top: 0;
+}
+
+.auth-panel p {
+  color: #cbd5e1;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.auth-form label {
+  font-weight: 600;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #f8fafc;
+  font: inherit;
+}
+
+.auth-form input:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.auth-form button,
+.session-info button {
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 6px;
+  background: #0284c7;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+.auth-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-error {
+  color: #fca5a5 !important;
+}
+
+.session-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.auth-panel a {
+  color: #38bdf8;
+}
