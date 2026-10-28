@@ -93,3 +93,31 @@ export async function loginUser(
     user,
   }
 }
+
+export interface RegistrationData {
+  email: string
+  password: string
+  full_name: string
+}
+
+export async function registerUser(
+  data: RegistrationData,
+): Promise<CurrentUser> {
+  const response = await fetch('/api/v1/auth/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) {
+    if (response.status === 409) {
+      throw new Error('Ya existe una cuenta con este correo electrónico.')
+    }
+
+    throw await getApiError(response)
+  }
+
+  return (await response.json()) as CurrentUser
+}

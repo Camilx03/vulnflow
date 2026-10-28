@@ -9,6 +9,7 @@ import {
 
 import BackendStatus from './components/BackendStatus'
 import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 import type { AuthSession, UserRole } from './services/auth'
 
 interface Page {
@@ -72,8 +73,8 @@ function App() {
 
   const visiblePages = session
     ? pages.filter((page) =>
-        page.roles.includes(session.user.role),
-      )
+      page.roles.includes(session.user.role),
+    )
     : []
 
   function logout() {
@@ -147,7 +148,13 @@ function App() {
 
           <Route
             path="/register"
-            element={<PlaceholderPage title="Register" />}
+            element={
+              session ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <RegisterPage />
+              )
+            }
           />
 
           <Route element={<ProtectedArea session={session} />}>
@@ -157,7 +164,7 @@ function App() {
                 path={page.path}
                 element={
                   session &&
-                  page.roles.includes(session.user.role) ? (
+                    page.roles.includes(session.user.role) ? (
                     <PlaceholderPage title={page.title} />
                   ) : (
                     <Navigate to="/dashboard" replace />
