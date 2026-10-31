@@ -6,11 +6,11 @@ import {
   Routes,
 } from 'react-router'
 
-import BackendStatus from './components/BackendStatus'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import type { UserRole } from './services/auth'
 import { useAuth } from './context/AuthContext'
+import DashboardPage from './pages/DashboardPage'
 
 interface Page {
   path: string
@@ -51,7 +51,6 @@ function PlaceholderPage({ title }: { title: string }) {
     <section>
       <h1>{title}</h1>
       <p>This section is under development.</p>
-      {title === 'Dashboard' && <BackendStatus />}
     </section>
   )
 }
@@ -160,7 +159,11 @@ function App() {
                 element={
                   session &&
                     page.roles.includes(session.user.role) ? (
-                    <PlaceholderPage title={page.title} />
+                    page.path === '/dashboard' ? (
+                      <DashboardPage />
+                    ) : (
+                      <PlaceholderPage title={page.title} />
+                    )
                   ) : (
                     <Navigate to="/dashboard" replace />
                   )
