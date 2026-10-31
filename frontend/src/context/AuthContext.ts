@@ -6,6 +6,7 @@ export interface AuthContextValue {
   session: AuthSession | null
   login: (session: AuthSession) => void
   logout: () => void
+  authFetch: (path: string, options?: RequestInit) => Promise<Response>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
