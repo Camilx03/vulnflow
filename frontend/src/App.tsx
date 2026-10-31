@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   Navigate,
   NavLink,
@@ -10,7 +9,8 @@ import {
 import BackendStatus from './components/BackendStatus'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import type { AuthSession, UserRole } from './services/auth'
+import type { UserRole } from './services/auth'
+import { useAuth } from './context/AuthContext'
 
 interface Page {
   path: string
@@ -56,11 +56,9 @@ function PlaceholderPage({ title }: { title: string }) {
   )
 }
 
-function ProtectedArea({
-  session,
-}: {
-  session: AuthSession | null
-}) {
+function ProtectedArea() {
+  const { session } = useAuth()
+
   if (!session) {
     return <Navigate to="/login" replace />
   }
@@ -69,7 +67,7 @@ function ProtectedArea({
 }
 
 function App() {
-  const [session, setSession] = useState<AuthSession | null>(null)
+  const { session, logout } = useAuth()
 
   const visiblePages = session
     ? pages.filter((page) =>
@@ -77,9 +75,6 @@ function App() {
     )
     : []
 
-  function logout() {
-    setSession(null)
-  }
 
   return (
     <div className="app">
@@ -141,7 +136,7 @@ function App() {
               session ? (
                 <Navigate to="/dashboard" replace />
               ) : (
-                <LoginPage onLogin={setSession} />
+                <LoginPage />
               )
             }
           />
@@ -157,7 +152,7 @@ function App() {
             }
           />
 
-          <Route element={<ProtectedArea session={session} />}>
+          <Route element={<ProtectedArea />}>
             {pages.map((page) => (
               <Route
                 key={page.path}

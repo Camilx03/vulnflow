@@ -1,14 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 
-import { loginUser, type AuthSession } from '../services/auth'
+import { loginUser } from '../services/auth'
+import { useAuth } from '../context/AuthContext'
 
-interface LoginPageProps {
-  onLogin: (session: AuthSession) => void
-}
-
-export default function LoginPage({ onLogin }: LoginPageProps) {
+export default function LoginPage() {
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -26,7 +24,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     try {
       const session = await loginUser(email.trim(), password)
 
-      onLogin(session)
+      login(session)
       navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(
