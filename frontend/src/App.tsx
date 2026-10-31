@@ -11,6 +11,7 @@ import RegisterPage from './pages/RegisterPage'
 import type { UserRole } from './services/auth'
 import { useAuth } from './context/AuthContext'
 import DashboardPage from './pages/DashboardPage'
+import AssetsPage from './pages/AssetsPage'
 
 interface Page {
   path: string
@@ -161,6 +162,8 @@ function App() {
                     page.roles.includes(session.user.role) ? (
                     page.path === '/dashboard' ? (
                       <DashboardPage />
+                    ) : page.path === '/assets' ? (
+                      <AssetsPage />
                     ) : (
                       <PlaceholderPage title={page.title} />
                     )
